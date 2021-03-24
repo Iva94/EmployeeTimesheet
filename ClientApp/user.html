@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Timesheet</title>
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <script src="js/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container" id="navbar">
+                <a class="navbar-brand" type="button" href="home.html">Employee Timesheet</a>
+                <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+                    <ul class="navbar-nav flex-grow-1" id="navItems">
+                        <li class="nav-item">
+                        <a class="nav-link text-dark" type="button" href="project.html">Projects</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" type="button" href="activity.html">Activities</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" type="button" onclick="window.location.reload()"><b>Users</b></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" type="button" href="report.html">Reports</a>
+                    </li>
+                    </ul>
+                </div>
+                <button class="btn btn-light" type="button" onclick="logout()">Log Out</button>                
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div id="mainDiv">
+                
+            </div>
+        </main>
+    </div>
+    <script src="lib/jquery/dist/jquery.min.js"></script>
+    <script src="lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/site.js" asp-append-version="true"></script>
+    
+    <script type="text/javascript">
+        $(document).ready(function () {           
+            var token = sessionStorage.getItem("token");
+            
+            if (token != null) {
+                let jwtData = token.split('.')[1]
+                let decodedJwtJsonData = window.atob(jwtData)
+                let decodedJwtData = JSON.parse(decodedJwtJsonData)
+                let role = decodedJwtData.role
+                
+                if (role == "Admin" || role == "Manager") {
+                    loadUserPage();
+                }
+            }
+            else {
+                window.location = "login.html";
+            }      
+        }); 
+        
+        function logout(){
+            sessionStorage.removeItem("token");
+            window.location = "login.html";
+        }
+
+        function loadUserPage(){
+            var options = {};
+            options.type = "GET";
+            options.url = "http://localhost:60758/api/User";
+            options.dataType = "json";
+            options.beforeSend = function (request) {
+                request.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
+            };
+            options.success = function (response) {
+                $("#mainDiv").empty();
+
+                $("#mainDiv").append(
+                    '<div class="container">' +
+                        '<div class="col-sm-12"><h2><b>Users</b>'+
+                            '<a class="btn btn-info add-new float-right" href="user_create.html"><i class="fa fa-plus"></i> Add New</a></h2>' +
+                        '</div>' +
+                    '</div>' +
+                    '<br>');
+
+                $("#mainDiv").append(
+                    '<table class="table table-bordered" id="table">' +
+                    '<thead>' +
+                        '<tr>' +
+                            '<th>Name</th>' +
+                            '<th>UserName</th>' +
+                            '<th>Manager</th>' +
+                            '<th>Role</th>' +
+                            '<th></th>' +
+                        '</tr>' +
+                    '</thead>' +
+                    '<tbody>' +
+                    '</tbody>' +
+                '</table>');
+
+                $.each(response, function (i, item) {
+                    if (item.managerFullName == null)
+                        item.managerFullName = "";
+                });
+
+                $.each(response, function (i, item) {
+                    var row = "<tr id='" + item.userId + "'>" +                        
+                        "<td id='Name'> " + item.fullName + "</td>" +
+                        "<td id='UserName'> " + item.userName + "</td>" +
+                        "<td id='Manager'> " + item.managerFullName + "</td>" +                        
+                        "<td id='Role'> " + item.roleName + "</td>" +
+                        "<td id='Actions'> " +
+                        '<button class="btn btn-success" title="Timesheet" data-toggle="tooltip" onclick="showUserTimesheet(this)"><i class="fa fa-calendar"></i></button>' +
+                        '<span> </span>' +
+                        '<button class="btn btn-warning" title="" data-toggle="tooltip" onclick="loadUserUpdatePage(this)"><i class="fa fa-edit"></i></button>' +
+                        '<span> </span>' +
+                        '<button class="btn btn-danger" title="Delete" data-toggle="tooltip" onclick="deleteUser(this)"><i class="fa fa-trash"></i></button>' +
+                        "</td>" +
+                        "</tr>";
+                    $("#table").append(row);
+                });
+
+            };
+            options.error = function (response) {
+                window.alert(response.statusText);
+            };
+            $.ajax(options);
+        }        
+
+        function loadUserUpdatePage(ctl){
+            var userId = $(ctl).parents("tr").attr("id");
+            window.location = "user_update.html?userId=" + userId;
+        }
+
+        function deleteUser(ctl){
+            var userId = $(ctl).parents("tr").attr("id"); 
+
+            console.log(userId);
+
+            var options = {};
+            options.type = "DELETE";
+            options.url = "http://localhost:60758/api/User/" + userId;
+            options.contentType = "application/json";
+            options.dataType = "json";
+            options.beforeSend = function (request) {
+                request.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
+            };
+
+            options.success = function (response) {
+                loadUserPage();
+            };
+            options.error = function (response) {
+                alert(response.statusText);
+            };
+
+            $.ajax(options);
+        }       
+
+        function showUserTimesheet(ctl){
+            var userId = $(ctl).parents("tr").attr("id");
+            window.location = "user_timesheet.html?userId=" + userId;
+        }
+
+    </script>
+</body>
+</html>

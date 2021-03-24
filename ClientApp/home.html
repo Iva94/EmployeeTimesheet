@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Timesheet</title>
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <script src="js/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container" id="navbar">
+                <a class="navbar-brand" type="button" onclick="window.location.reload()"><b>Employee Timesheet</b></a>
+                <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+                    <ul class="navbar-nav flex-grow-1" id="navItems">
+                    </ul>
+                </div>
+                <button class="btn btn-light" type="button" onclick="logout()">Log Out</button>                
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div id="mainDiv">
+                
+            </div>
+        </main>
+    </div>
+    <script src="lib/jquery/dist/jquery.min.js"></script>
+    <script src="lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/site.js" asp-append-version="true"></script>
+    
+    <script type="text/javascript">
+        $(document).ready(function () {           
+            var token = sessionStorage.getItem("token");
+
+            if (token != null) {
+                loadNavBar();
+                loadMainPage();
+            }
+            else {
+                window.location = "login.html"
+            }      
+        }); 
+
+        function loadNavBar(){
+            var token = sessionStorage.getItem("token");
+            
+            let jwtData = token.split('.')[1]
+            let decodedJwtJsonData = window.atob(jwtData)
+            let decodedJwtData = JSON.parse(decodedJwtJsonData)
+            let role = decodedJwtData.role
+            
+            if (role == "Admin" || role == "Manager") {
+                $("#navItems").append(
+                    '<li class="nav-item">' +
+                        '<a class="nav-link text-dark" type="button" href="project.html">Projects</a>' +
+                    '</li>' +
+                    '<li class="nav-item">' +
+                        '<a class="nav-link text-dark" type="button" href="activity.html">Activities</a>' +
+                    '</li>' +
+                    '<li class="nav-item">' +
+                        '<a class="nav-link text-dark" type="button" href="user.html">Users</a>' +
+                    '</li>' +
+                    '<li class="nav-item">' +
+                        '<a class="nav-link text-dark" type="button" href="report.html">Reports</a>' +
+                    '</li>' );
+            }
+        }
+        
+        function logout(){
+            sessionStorage.removeItem("token");
+            window.location = "login.html";
+        }
+
+        function loadMainPage(){
+            var options = {};
+            options.type = "GET";
+            options.url = "http://localhost:60758/api/User/" + getUserIdFromToken(); 
+            options.dataType = "json";
+            options.beforeSend = function (request) {
+                request.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
+            };
+
+            options.success = function (response) {
+                var manager = "";
+                if (response.managerFullName != null)
+                    manager = '<h6>Manager: <b>' + response.managerFullName + '</b><h6>';  
+
+                $("#mainDiv").empty();
+                $("#mainDiv").append(
+                    '<div class="container">' +
+                        '<div id="row">' +
+                            '<div id="col-sm-12">' +
+                                '<table>' +                                    
+                                    '<tr id="' + response.userId + '">' +
+                                        '<td>' +
+                                        '<h6>Name: <b>' + response.fullName + '</b><h6>' +
+                                        '<h6>Username: <b>' + response.userName + '</b><h6>' +
+                                            manager +
+                                        '<h6>Role: <b>' + response.roleName + '</b><h6>' +
+                                        '</td> ' +
+                                        '<button class="btn btn-secondary add-new float-right" onclick="loadUserUpdatePage(this)"><i class="fa fa-edit"></i> Edit Profile</button>' +
+                                    '</tr>' + 
+                                '</table>' +                                
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<br>' +
+                    '<hr>' +
+                    '<div class="container">' +
+                        '<div id="row">' +
+                            '<div id="col-sm-6">' +
+                                '<h3 class="mb-20">Project Timesheet' +
+                                    '<a class="btn btn-info add-new float-right" href="project_timesheet_create.html"><i class="fa fa-plus"></i> Add New</a>'+
+                                '</h3>'+ 
+                                '<br>' +
+                                '<div class="mt=10" id="projectTimesheetDiv">' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>'+
+                    '</div>'+                    
+                    '<br>' +
+                    '<br>' +
+                    '<hr>' +
+                    '<div class="container">' +
+                        '<div id="row">' +
+                            '<div id="col-sm-6">' +
+                                '<h3 class="mb-0">Activity Timesheet' +
+                                    '<a class="btn btn-info add-new float-right" href="activity_timesheet_create.html"><i class="fa fa-plus"></i> Add New</a>'+
+                                '</h3>'+
+                                '<br>' +
+                                '<div id="activityTimesheetDiv">' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>'
+                    );
+
+                $("#projectTimesheetDiv").empty();
+                $("#projectTimesheetDiv").append(
+                    '<table class="table table-bordered" id="projectTimesheetTable">' +
+                    '<thead>' +
+                        '<tr>' +
+                            '<th>Name</th>' +
+                            '<th>Date</th>' +
+                            '<th>Time</th>' +
+                            '<th></th>' +
+                        '</tr>' +
+                    '</thead>' +
+                    '<tbody>' +
+                    '</tbody>' +
+                '</table>');
+
+                $.each(response.projectTimesheetEntries, function (i, item) {
+                    
+                    var date = formatDate(item.date);
+
+                    var row = "<tr id='" + item.projectTimesheetEntryId + "'>" +
+                        "<td id='Name'> " + item.projectName + "</td>" +
+                        "<td id='Date'> " + date + "</td>" +
+                        "<td id='WorkingHours'> " + item.workingHours + "</td>" +
+                        "<td id='Actions'> " +
+                        '<button class="btn btn-warning" title="Edit" data-toggle="tooltip" onclick="loadProjectTimesheetUpdatePage(this)"><i class="fa fa-edit"></i></button>' +
+                        '<span> </span>' +
+                        '<button class="btn btn-danger" title="Delete" data-toggle="tooltip" onclick="deleteProjectTimesheetEntry(this)"><i class="fa fa-trash"></i></button>' +
+                        "</td>" +
+                        "</tr>";
+                    $("#projectTimesheetTable").append(row);
+                
+                });
+
+             $("#activityTimesheetDiv").empty();
+
+                $("#activityTimesheetDiv").append(
+                    '<table class="table table-bordered" id="activityTimesheetTable">' +
+                    '<thead>' +
+                        '<tr>' +
+                            '<th>Name</th>' +
+                            '<th>Date</th>' +
+                            '<th>Time</th>' +
+                            '<th></th>' +
+                        '</tr>' +
+                    '</thead>' +
+                    '<tbody>' +
+                    '</tbody>' +
+                '</table>');
+
+                $.each(response.activityTimesheetEntries, function (i, item) {
+
+                    var date = formatDate(item.date);
+                    var row = "<tr id='" + item.activityTimesheetEntryId + "'>" +
+                        "<td id='Name'> " + item.activityName + "</td>" +
+                        "<td id='Date'> " + date + "</td>" +
+                        "<td id='WorkingHours'> " + item.workingHours + "</td>" +
+                        "<td id='Actions'> " +
+                        '<button class="btn btn-warning" title="Edit" data-toggle="tooltip" onclick="loadActivityTimesheetUpdatePage(this)"><i class="fa fa-edit"></i></button>' +
+                        '<span> </span>' +
+                        '<button class="btn btn-danger" title="Delete" data-toggle="tooltip" onclick="deleteActivityTimesheetEntry(this)"><i class="fa fa-trash"></i></button>' +
+                        "</td>" +
+                        "</tr>";
+                    $("#activityTimesheetTable").append(row);
+                });
+            };
+            options.error = function (response) {
+                alert(response.statusText + ': ' + response.responseText);
+            };
+            $.ajax(options);
+        }
+
+        function loadUserUpdatePage(ctl){
+            window.location = "user_update.html?userId=" + getUserIdFromToken();
+        }
+
+        function changePassword(){
+            var userId = getUserIdFromToken(); //TODO 
+
+            var model = new Object();
+            model.userId = userId;
+            model.password = $("#password").val();
+
+            var options = {};
+            options.type = "PUT";
+            options.url = "http://localhost:60758/api/User/" + userId + "/ChangePassword";
+            options.data = JSON.stringify(model);
+            options.contentType = "application/json";
+            options.dataType = "json";
+            options.beforeSend = function (request) {
+                request.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
+            };
+
+            options.success = function (response) {
+                window.location = "home.html";
+            };
+            options.error = function (response) {
+                alert(response.statusText);
+            };
+
+            $.ajax(options);
+        }
+
+
+        function loadProjectTimesheetUpdatePage(ctl){
+            var projectTimesheetEntryId = $(ctl).parents("tr").attr("id");
+            window.location = "project_timesheet_update.html?projectTimesheetEntryId=" + projectTimesheetEntryId;
+        }
+
+        function deleteProjectTimesheetEntry(ctl){
+            var projectTimesheetEntryId = $(ctl).parents("tr").attr("id");
+            
+            var options = {};
+            options.type = "DELETE";
+            options.url = "http://localhost:60758/api/ProjectTimesheetEntry/" + projectTimesheetEntryId;
+            options.contentType = "application/json";
+            options.dataType = "json";
+            options.beforeSend = function (request) {
+                request.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
+            };
+
+            options.success = function (response) {
+                loadMainPage();
+            };
+            options.error = function (response) {
+                alert(response.statusText + ": " + response.responseText);
+            };
+
+            $.ajax(options);
+        }
+
+
+        function loadActivityTimesheetUpdatePage(ctl){
+            var activityTimesheetEntryId = $(ctl).parents("tr").attr("id");
+            window.location = "activity_timesheet_update.html?activityTimesheetEntryId=" + activityTimesheetEntryId;
+        }
+
+        function deleteActivityTimesheetEntry(ctl){
+            var activityTimesheetEntryId = $(ctl).parents("tr").attr("id"); 
+
+            var options = {};
+            options.type = "DELETE";
+            options.url = "http://localhost:60758/api/ActivityTimesheetEntry/" + activityTimesheetEntryId;
+            options.contentType = "application/json";
+            options.dataType = "json";
+            options.beforeSend = function (request) {
+                request.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
+            };
+
+            options.success = function (response) {
+                loadMainPage();
+            };
+            options.error = function (response) {
+                alert(response.statusText + ": " + response.responseText);
+            };
+
+            $.ajax(options);
+        }
+        
+        function getUserIdFromToken(){
+            var token = sessionStorage.getItem("token");
+            let jwtData = token.split('.')[1]
+            let decodedJwtJsonData = window.atob(jwtData)
+            let decodedJwtData = JSON.parse(decodedJwtJsonData)
+            let userId = decodedJwtData.nameid
+
+            return userId;
+        }
+
+        function formatDate(date) {
+            var newDate = new Date(date),
+            month = '' + (newDate.getMonth() + 1),
+            day = '' + newDate.getDate(),
+            year = newDate.getFullYear();
+
+            if (month.length < 2) 
+                month = '0' + month;
+            if (day.length < 2) 
+                day = '0' + day;
+
+            return [day, month, year].join('-');
+        } 
+
+    </script>
+</body>
+</html>

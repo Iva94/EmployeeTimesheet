@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Employee Timesheet</title>
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <script src="js/jquery-3.5.1.min.js"></script>
+</head>
+<body>
+    <header>
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
+            <div class="container" id="navbar">
+                <a class="navbar-brand" type="button" href="home.html">Employee Timesheet</a>
+                <div class="navbar-collapse collapse d-sm-inline-flex flex-sm-row-reverse">
+                    <ul class="navbar-nav flex-grow-1" id="navItems">
+                        <li class="nav-item">
+                        <a class="nav-link text-dark" type="button" href="project.html"><b>Projects</b></a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" type="button" href="activity.html">Activities</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" type="button" href="user.html">Users</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-dark" type="button" href="report.html">Reports</a>
+                    </li>
+                    </ul>
+                </div>
+                <button class="btn btn-light" type="button" onclick="logout()">Log Out</button>                
+            </div>
+        </nav>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            <div id="mainDiv">
+                <div class="col-sm-6">
+                    <div class="table-responsive-sm">
+                        <form>
+                            <fieldset>
+                                <legend><h3>Update project</h3></legend>
+                                <input type="hidden" id="projectId">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="name" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="responsiblePerson" class="form-label">Responsible person</label>
+                                    <select id="responsiblePerson" class="form-select" required>
+                                        <option></option>
+                                    </select>
+                                </div>
+                                <div id="errorMessage">
+                                </div>                             
+                                <button type="button" class="btn btn-success mr-3" onclick="updateProject()">Save</button>
+                                <a type="button" class="btn btn-light mr-3" href="project.html">Cancel</a> 
+                           </fieldset>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="lib/jquery/dist/jquery.min.js"></script>
+    <script src="lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/site.js" asp-append-version="true"></script>
+    
+    <script type="text/javascript">
+        $(document).ready(function () {           
+            var token = sessionStorage.getItem("token");
+            
+            if (token != null) {
+                let jwtData = token.split('.')[1]
+                let decodedJwtJsonData = window.atob(jwtData)
+                let decodedJwtData = JSON.parse(decodedJwtJsonData)
+                let role = decodedJwtData.role
+                
+                if (role == "Admin" || role == "Manager") {
+                    getProjectData();
+                }
+            }
+            else {
+                window.location = "login.html";
+            }      
+        });       
+        
+        function logout(){
+            sessionStorage.removeItem("token");
+            window.location = "login.html";
+        }
+
+        function getProjectData(){
+            var projectId = $("#projectId").val();
+        
+            var options = {};
+            options.type = "GET";
+            options.url = "http://localhost:60758/api/Project/" + projectId;
+            options.dataType = "json";
+            options.beforeSend = function (request) {
+                request.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
+            };
+            options.success = function (response) {
+                $("#name").val(response.name);
+            };
+            options.error = function (response) {
+                alert(response.statusText + ": " + response.responseText);
+            };
+            $.ajax(options);
+
+            getResponsablePersons();
+        }
+
+        function updateProject(){
+            if($("#name").val().length == 0 || $("#responsiblePerson").val().length == 0)
+            {
+                $("#errorMessage").empty();
+                $("#errorMessage").append('<div class="alert alert-danger" role="alert">Please fill in all required fields!</div>');
+            }
+            else
+                {
+                var model = {};
+                model.projectId = $("#projectId").val();
+                model.name = $("#name").val();
+                model.responsiblePersonId = parseInt($("#responsiblePerson").val());
+
+                model.status = $("#status").val(); //TODO STATUS
+
+                console.log(model);
+                console.log(JSON.stringify(model));
+
+                var options = {};
+                options.type = "PUT";
+                options.url = "http://localhost:60758/api/Project/" + model.projectId;
+                options.data = JSON.stringify(model);
+                options.contentType = "application/json";
+                options.dataType = "json";
+                options.beforeSend = function (request) {
+                    request.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
+                };
+
+                options.success = function (response) {
+                    window.location = "project.html";
+                };
+                options.error = function (response) {
+                    $("#errorMessage").empty();
+                    $("#errorMessage").append('<div class="alert alert-danger" role="alert">' + response.responseText + '</div>');
+                };
+
+                $.ajax(options);
+            }
+        }
+
+        function getResponsablePersons() {
+            var options = {};
+            options.type = "GET";
+            options.url = "http://localhost:60758/api/User/Managers";
+            options.dataType = "json";
+            options.beforeSend = function (request) {
+                request.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem("token"));
+            };
+
+            options.success = function (response) {
+                $.each(response, function (i, item) {
+                    var option = "<option value='" + item.userId + "'>" + item.fullName + "</option>";
+                    $("#responsiblePerson").append(option);
+                });
+            };
+            options.error = function (response) {
+                $("#responsiblePerson").append("<option>Responsible persons...</option>");
+            };
+            $.ajax(options);
+        }
+
+    </script>
+</body>
+</html>
